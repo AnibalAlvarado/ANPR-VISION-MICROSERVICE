@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  microservice:
+    build: .
+    container_name: anpr-microservice
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - kafka
+      - redis
+      - db
+
+  kafka:
+    image: bitnami/kafka:3.7.0
+    container_name: kafka
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+
+  zookeeper:
+    image: bitnami/zookeeper:3.9
+    container_name: zookeeper
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    ports:
+      - "2181:2181"
+
+  redis:
+    image: redis:7.4
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  db:
+    image: postgres:13.22
+    container_name: postgres
+    environment:
+      POSTGRES_USER=user
+      POSTGRES_PASSWORD=password
+      POSTGRES_DB=anpr
+    ports:
+      - "5432:5432"
