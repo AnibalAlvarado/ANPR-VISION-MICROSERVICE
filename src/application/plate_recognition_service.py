@@ -1,11 +1,14 @@
 import time
 import uuid
 import cv2
+import logging
 from domain.Models.detection_result import DetectionResult
 from domain.Interfaces.camera_stream import ICameraStream
 from domain.Interfaces.plate_detector import IPlateDetector
 from domain.Interfaces.ocr_reader import IOCRReader
 from domain.Interfaces.event_publisher import IEventPublisher
+
+logger = logging.getLogger(__name__)
 
 class PlateRecognitionService:
     """
@@ -21,53 +24,64 @@ class PlateRecognitionService:
         camera_stream: ICameraStream,
         detector: IPlateDetector,
         ocr_reader: IOCRReader,
-        publisher: IEventPublisher
+        publisher: IEventPublisher,
+        debug_show: bool = False,
+        loop_delay: float = 0.0
     ):
         self.camera_stream = camera_stream
         self.detector = detector
         self.ocr_reader = ocr_reader
         self.publisher = publisher
         self.running = False
+        self.debug_show = debug_show
+        self.loop_delay = loop_delay
 
     def start(self):
         """Inicia el proceso continuo de reconocimiento."""
         self.camera_stream.connect()
         self.running = True
-        print("🚀 Servicio de reconocimiento iniciado")
+        logger.info("✅ Servicio de reconocimiento iniciado")
 
-        while self.running:
-            frame = self.camera_stream.read_frame()
-            if frame is None:
-                print("⚠️ No se pudo leer frame, reintentando...")
-                time.sleep(1)
-                continue
+        try:
+            while self.running:
+                frame = self.camera_stream.read_frame()
+                if frame is None:
+                    logger.warning("⚠️ No se pudo leer frame, reintentando...")
+                    time.sleep(0.5)
+                    continue
 
-            # Detectar placas
-            plates = self.detector.detect(frame)
+                # Detectar placas
+                plates = self.detector.detect(frame)
 
-            # Aplicar OCR si hay placas
-            ocr_results = [self.ocr_reader.read_text(frame, p) for p in plates]
+                # Aplicar OCR si hay placas
+                ocr_results = [self.ocr_reader.read_text(frame, p) for p in plates]
 
-            # Crear resultado
-            result = DetectionResult(
-                frame_id=str(uuid.uuid4()),
-                plates=ocr_results,
-                processed_at=time.time()
-            )
+                # Crear resultado
+                result = DetectionResult(
+                    frame_id=str(uuid.uuid4()),
+                    plates=ocr_results,
+                    processed_at=time.time(),
+                    source=frame.source,
+                    captured_at=frame.timestamp
+                )
 
-            # Publicar resultado
-            self.publisher.publish(result)
+                # Publicar resultado
+                self.publisher.publish(result)
 
-            # Mostrar frame en ventana de prueba
-            cv2.imshow("Stream", frame.data)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
+                # Mostrar frame (solo en modo debug local)
+                if self.debug_show:
+                    cv2.imshow("Stream", frame.data)
+                    if cv2.waitKey(1) & 0xFF == ord("q"):
+                        logger.info(" Se recibió señal de salida (q)")
+                        break
 
-            # Evitar sobrecargar CPU
-            time.sleep(0.1)
+                if self.loop_delay > 0:
+                    time.sleep(self.loop_delay)
+
+        except KeyboardInterrupt:
+            logger.info("🛑 Servicio detenido manualmente (Ctrl+C)")
+        finally:
+            self.stop()
 
     def stop(self):
         """Detiene el proceso."""
-        self.running = False
-        self.camera_stream.disconnect()
-        print("🛑 Servicio detenido")
