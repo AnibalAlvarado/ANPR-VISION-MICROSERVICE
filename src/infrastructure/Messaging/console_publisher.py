@@ -1,6 +1,6 @@
 import json
-from domain.Interfaces.event_publisher import IEventPublisher
-from domain.Models.detection_result import DetectionResult
+from src.domain.Interfaces.event_publisher import IEventPublisher
+from src.domain.Models.detection_result import DetectionResult
 
 class ConsolePublisher(IEventPublisher):
     """

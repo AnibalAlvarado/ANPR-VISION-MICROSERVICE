@@ -5,6 +5,7 @@ pydantic-settings==2.10.1
 python-dotenv==1.0.1
 
 aiokafka==0.10.0
+confluent-kafka>=2.11.1
 redis==5.1.1
 
 SQLAlchemy==2.0.35

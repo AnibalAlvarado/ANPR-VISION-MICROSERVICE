@@ -1,6 +1,6 @@
 from dataclasses import dataclass, asdict
 from typing import List
-from domain.Models.plate import Plate
+from src.domain.Models.plate import Plate
 
 @dataclass
 class DetectionResult:

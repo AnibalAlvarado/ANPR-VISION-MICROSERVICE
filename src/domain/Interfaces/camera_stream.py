@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from domain.Models.frame import Frame
+from src.domain.Models.frame import Frame
 
 class ICameraStream(ABC):
     """

@@ -1,12 +1,13 @@
-from infrastructure.Camera.opencv_camera_stream import OpenCVCameraStream
-from infrastructure.Detector.YOLOPlateDetector import YOLOPlateDetector
-from infrastructure.OCR.EasyOCR_OCRReader import EasyOCR_OCRReader
-from infrastructure.Messaging.console_publisher import ConsolePublisher
-from application.plate_recognition_service import PlateRecognitionService
+from src.infrastructure.Camera.opencv_camera_stream import OpenCVCameraStream
+from src.infrastructure.Detector.YOLOPlateDetector import YOLOPlateDetector
+from src.infrastructure.OCR.EasyOCR_OCRReader import EasyOCR_OCRReader
+from src.infrastructure.Messaging.console_publisher import ConsolePublisher
+from src.application.plate_recognition_service import PlateRecognitionService
+from src.core.config import settings  
 
 def main():
-    #  URL de cámara o video de prueba
-    url = "http://172.30.7.56:8080/video"  # Ejemplo: "rtsp://usuario:pass@192.168.1.100:554/stream"
+    # URL de cámara o video de prueba
+    url = "rtsp://192.168.1.2:8080/h264_ulaw.sdp"  # 👈 cámbiala si es necesario
 
     # Inicializar dependencias
     camera = OpenCVCameraStream(url)
@@ -14,12 +15,16 @@ def main():
     ocr = EasyOCR_OCRReader()
     publisher = ConsolePublisher()
 
-    # Crear servicio principal
+    # Crear servicio principal con todos los parámetros configurables
     service = PlateRecognitionService(
         camera_stream=camera,
         detector=detector,
         ocr_reader=ocr,
-        publisher=publisher
+        publisher=publisher,
+        debug_show=settings.debug_show,
+        loop_delay=settings.loop_delay,
+        dedup_ttl=settings.dedup_ttl,
+        similarity_threshold=settings.similarity_threshold
     )
 
     # Ejecutar

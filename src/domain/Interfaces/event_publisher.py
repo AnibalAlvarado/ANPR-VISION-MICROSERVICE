@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from domain.Models.detection_result import DetectionResult
+from src.domain.Models.detection_result import DetectionResult
 
 class IEventPublisher(ABC):
     """

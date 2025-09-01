@@ -2,11 +2,12 @@ import time
 import uuid
 import cv2
 import logging
-from domain.Models.detection_result import DetectionResult
-from domain.Interfaces.camera_stream import ICameraStream
-from domain.Interfaces.plate_detector import IPlateDetector
-from domain.Interfaces.ocr_reader import IOCRReader
-from domain.Interfaces.event_publisher import IEventPublisher
+from src.domain.Models.detection_result import DetectionResult
+from src.domain.Interfaces.camera_stream import ICameraStream
+from src.domain.Interfaces.plate_detector import IPlateDetector
+from src.domain.Interfaces.ocr_reader import IOCRReader
+from src.domain.Interfaces.event_publisher import IEventPublisher
+from src.utils.deduplicator import Deduplicator  # 👈 import deduplicador
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,7 @@ class PlateRecognitionService:
     - Captura frames desde la cámara
     - Detecta posibles placas
     - Lee texto de las placas con OCR
+    - Filtra duplicados
     - Publica el resultado en un broker (o consola en dummy)
     """
 
@@ -26,7 +28,8 @@ class PlateRecognitionService:
         ocr_reader: IOCRReader,
         publisher: IEventPublisher,
         debug_show: bool = False,
-        loop_delay: float = 0.0
+        loop_delay: float = 0.0,
+        dedup_ttl: float = 3.0
     ):
         self.camera_stream = camera_stream
         self.detector = detector
@@ -35,6 +38,7 @@ class PlateRecognitionService:
         self.running = False
         self.debug_show = debug_show
         self.loop_delay = loop_delay
+        self.deduplicator = Deduplicator(ttl=dedup_ttl)
 
     def start(self):
         """Inicia el proceso continuo de reconocimiento."""
@@ -56,10 +60,19 @@ class PlateRecognitionService:
                 # Aplicar OCR si hay placas
                 ocr_results = [self.ocr_reader.read_text(frame, p) for p in plates]
 
+                # Filtrar duplicados
+                unique_results = [
+                    plate_text for plate_text in ocr_results
+                    if plate_text and not self.deduplicator.is_duplicate(plate_text)
+                ]
+
+                if not unique_results:
+                    continue  # nada nuevo, saltamos
+
                 # Crear resultado
                 result = DetectionResult(
                     frame_id=str(uuid.uuid4()),
-                    plates=ocr_results,
+                    plates=unique_results,
                     processed_at=time.time(),
                     source=frame.source,
                     captured_at=frame.timestamp

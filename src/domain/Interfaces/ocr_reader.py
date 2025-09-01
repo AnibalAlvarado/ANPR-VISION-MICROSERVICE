@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from domain.Models.frame import Frame
-from domain.Models.plate import Plate
+from src.domain.Models.frame import Frame
+from src.domain.Models.plate import Plate
 
 class IOCRReader(ABC):
     """

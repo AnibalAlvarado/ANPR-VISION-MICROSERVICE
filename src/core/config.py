@@ -12,6 +12,19 @@ class Settings(BaseSettings):
     redis_url: str
 
     model_path: str
+    conf_threshold: float = 0.3
+    iou_threshold: float = 0.45
+
+    debug_show: bool = False
+    loop_delay: float = 0.0
+
+    dedup_ttl: float = 3.0
+    similarity_threshold: float = 0.9
+
+     # OCR
+    ocr_lang: str = "en"
+    ocr_interval: int = 5
+    ocr_min_length: int = 4
 
     class Config:
         env_file = ".env"
