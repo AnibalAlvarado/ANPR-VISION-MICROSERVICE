@@ -3,7 +3,7 @@
 Este documento explica cómo levantar el proyecto **ANPR-VISION-MICROSERVICE** usando **Docker** y **Docker Compose**.
 
 ---
-
+solo prueba
 ## 1. Requisitos previos
 - Tener instalado **Docker Engine** y **Docker Compose**.
 - Verificar con:
