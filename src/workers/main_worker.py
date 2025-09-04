@@ -3,15 +3,16 @@ from src.infrastructure.Detector.YOLOPlateDetector import YOLOPlateDetector
 from src.infrastructure.OCR.EasyOCR_OCRReader import EasyOCR_OCRReader
 from src.infrastructure.Messaging.console_publisher import ConsolePublisher
 from src.application.plate_recognition_service import PlateRecognitionService
+from src.infrastructure.Detector.factory import create_plate_detector
 from src.core.config import settings  
 
 def main():
     # URL de cámara o video de prueba
-    url = "rtsp://192.168.1.2:8080/h264_ulaw.sdp"  # 👈 cámbiala si es necesario
+    url = settings.camera_url  # 👈 cámbiala si es necesario
 
     # Inicializar dependencias
     camera = OpenCVCameraStream(url)
-    detector = YOLOPlateDetector()
+    detector = create_plate_detector()
     ocr = EasyOCR_OCRReader()
     publisher = ConsolePublisher()
 

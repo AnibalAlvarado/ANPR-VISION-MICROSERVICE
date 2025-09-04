@@ -27,6 +27,26 @@ class Settings(BaseSettings):
     ocr_min_length: int = 4
     ocr_min_confidence: float = 0.8
 
+    # Camera
+    camera_url: str
+
+     # Switch de detector
+    yolo_version: str = "v8"   # v5 | v8
+
+    # YOLOv5 (local y/o HF)
+    yolov5_model_path: str = "./models/yolov5n-license-plate.pt"
+    yolov5_conf: float = 0.25
+    yolov5_iou: float = 0.45
+    yolov5_img_size: int = 640
+    yolov5_agnostic: bool = False
+    yolov5_multi_label: bool = False
+    yolov5_max_det: int = 1000
+    yolov5_device: str = "auto"  # auto | cpu | cuda:0
+
+    # Hugging Face (opcional, solo si no existe el .pt local)
+    yolov5_hf_repo: str = "keremberke/yolov5n-license-plate"
+    yolov5_hf_filename: str = "yolov5n-license-plate.pt"
+
 
     class Config:
         env_file = ".env"

@@ -57,7 +57,7 @@ pip install -r requirements.txt
 
 ## 6. Ejecutar el proyecto
 ```powershell
-python src\workers\main_worker.py
+py -m src.workers.main_worker
 ```
 o con Uvicorn:
 ```powershell
