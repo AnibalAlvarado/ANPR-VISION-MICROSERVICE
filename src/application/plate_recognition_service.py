@@ -27,18 +27,19 @@ class PlateRecognitionService:
         detector: IPlateDetector,
         ocr_reader: IOCRReader,
         publisher: IEventPublisher,
-        debug_show: bool = False,
+        debug_show: bool = True,
         loop_delay: float = 0.0,
-        dedup_ttl: float = 3.0
+        dedup_ttl: float = 3.0,
+        similarity_threshold: float = 0.9   # 👈 nuevo parámetro
     ):
         self.camera_stream = camera_stream
         self.detector = detector
         self.ocr_reader = ocr_reader
         self.publisher = publisher
         self.running = False
-        self.debug_show = debug_show
+        self.debug_show = True
         self.loop_delay = loop_delay
-        self.deduplicator = Deduplicator(ttl=dedup_ttl)
+        self.deduplicator = Deduplicator(ttl=dedup_ttl, similarity_threshold=similarity_threshold)
 
     def start(self):
         """Inicia el proceso continuo de reconocimiento."""
@@ -62,21 +63,22 @@ class PlateRecognitionService:
 
                 # Filtrar duplicados
                 unique_results = [
-                    plate_text for plate_text in ocr_results
-                    if plate_text and not self.deduplicator.is_duplicate(plate_text)
+                    plate for plate in ocr_results
+                    if plate.text and not self.deduplicator.is_duplicate(plate.text)
                 ]
 
                 if not unique_results:
                     continue  # nada nuevo, saltamos
 
-                # Crear resultado
                 result = DetectionResult(
                     frame_id=str(uuid.uuid4()),
-                    plates=unique_results,
+                    plates=unique_results,  # 👈 lista de Plate con text + confidence + bbox
                     processed_at=time.time(),
                     source=frame.source,
                     captured_at=frame.timestamp
                 )
+
+                self.publisher.publish(result)
 
                 # Publicar resultado
                 self.publisher.publish(result)

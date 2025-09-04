@@ -1,9 +1,9 @@
 version: "3.9"
 
 services:
-  anpr-vision-app:
+  anpr-api:
     build: .
-    container_name: anpr-vision-dev
+    container_name: anpr-vision-api
     working_dir: /app
     volumes:
       - .:/app
@@ -15,6 +15,23 @@ services:
     tty: true
     depends_on:
       - kafka
+    networks:
+      - anpr-net
+
+  anpr-worker:
+    build: .
+    container_name: anpr-vision-worker
+    working_dir: /app
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    command: python -m workers.main_worker
+    tty: true
+    depends_on:
+      - kafka
+    networks:
+      - anpr-net
 
   kafka:
     image: bitnami/kafka:4.0.0
@@ -22,15 +39,18 @@ services:
     ports:
       - "9092:9092"
     environment:
-      # Identificación del nodo
       KAFKA_CFG_NODE_ID: 1
       KAFKA_CFG_PROCESS_ROLES: broker,controller
-      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:29092
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
       ALLOW_PLAINTEXT_LISTENER: yes
+    volumes:
+      - kafka_data:/bitnami/kafka
+    networks:
+      - anpr-net
     healthcheck:
       test: ["CMD", "bash", "-c", "nc -z localhost 9092"]
       interval: 10s
@@ -47,4 +67,13 @@ services:
       KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
     depends_on:
       - kafka
+    networks:
+      - anpr-net
+
+volumes:
+  kafka_data:
+
+networks:
+  anpr-net:
+    driver: bridge
 

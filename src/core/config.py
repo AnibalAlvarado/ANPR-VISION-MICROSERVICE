@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     ocr_lang: str = "en"
     ocr_interval: int = 5
     ocr_min_length: int = 4
+    ocr_min_confidence: float = 0.8
+
 
     class Config:
         env_file = ".env"
