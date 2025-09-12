@@ -4,6 +4,7 @@ from src.infrastructure.OCR.EasyOCR_OCRReader import EasyOCR_OCRReader
 from src.infrastructure.Messaging.console_publisher import ConsolePublisher
 from src.application.plate_recognition_service import PlateRecognitionService
 from src.infrastructure.Detector.factory import create_plate_detector
+from src.infrastructure.Camera.camera_factory import create_camera_stream
 from src.core.config import settings  
 
 def main():
@@ -11,7 +12,7 @@ def main():
     url = settings.camera_url  # 👈 cámbiala si es necesario
 
     # Inicializar dependencias
-    camera = OpenCVCameraStream(url)
+    camera = create_camera_stream()
     detector = create_plate_detector()
     ocr = EasyOCR_OCRReader()
     publisher = ConsolePublisher()

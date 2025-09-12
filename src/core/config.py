@@ -29,6 +29,7 @@ class Settings(BaseSettings):
 
     # Camera
     camera_url: str
+    camera_native:  bool = False
 
      # Switch de detector
     yolo_version: str = "v8"   # v5 | v8
