@@ -98,7 +98,7 @@ class OpenCVCameraStream(ICameraStream):
                 logger.info("Reconexión exitosa.")
                 return True
             time.sleep(1)
-        logger.error("🚨 No se pudo reconectar al stream.")
+        logger.error(" No se pudo reconectar al stream.")
         return False
 
     def disconnect(self) -> None:

@@ -1,3 +1,5 @@
+import warnings
+warnings.filterwarnings("ignore", category=FutureWarning, module="yolov5")
 import time
 import uuid
 import cv2
@@ -7,7 +9,8 @@ from src.domain.Interfaces.camera_stream import ICameraStream
 from src.domain.Interfaces.plate_detector import IPlateDetector
 from src.domain.Interfaces.ocr_reader import IOCRReader
 from src.domain.Interfaces.event_publisher import IEventPublisher
-from src.utils.deduplicator import Deduplicator  # 👈 import deduplicador
+from src.domain.Interfaces.tracker import ITracker  
+from src.utils.deduplicator import Deduplicator
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +20,9 @@ class PlateRecognitionService:
     - Captura frames desde la cámara
     - Detecta posibles placas
     - Lee texto de las placas con OCR
+    - Asigna track_id con el tracker
     - Filtra duplicados
-    - Publica el resultado en un broker (o consola en dummy)
+    - Publica el resultado
     """
 
     def __init__(
@@ -27,43 +31,51 @@ class PlateRecognitionService:
         detector: IPlateDetector,
         ocr_reader: IOCRReader,
         publisher: IEventPublisher,
+        tracker: ITracker,            
         debug_show: bool = True,
         loop_delay: float = 0.0,
         dedup_ttl: float = 3.0,
-        similarity_threshold: float = 0.9   # 👈 nuevo parámetro
+        similarity_threshold: float = 0.9
     ):
         self.camera_stream = camera_stream
         self.detector = detector
         self.ocr_reader = ocr_reader
         self.publisher = publisher
+        self.tracker = tracker           
         self.running = False
-        self.debug_show = True
+        self.debug_show = debug_show
         self.loop_delay = loop_delay
-        self.deduplicator = Deduplicator(ttl=dedup_ttl, similarity_threshold=similarity_threshold)
+        self.deduplicator = Deduplicator(
+            ttl=dedup_ttl,
+            similarity_threshold=similarity_threshold
+        )
 
     def start(self):
         """Inicia el proceso continuo de reconocimiento."""
         self.camera_stream.connect()
         self.running = True
-        logger.info("✅ Servicio de reconocimiento iniciado")
+        logger.info(" Servicio de reconocimiento iniciado")
 
         try:
             while self.running:
                 frame = self.camera_stream.read_frame()
                 if frame is None:
-                    logger.warning("⚠️ No se pudo leer frame, reintentando...")
+                    logger.warning(" No se pudo leer frame, reintentando...")
                     time.sleep(0.5)
                     continue
 
-                # Detectar placas
+                # Detectar placas (solo bounding boxes)
                 plates = self.detector.detect(frame)
 
-                # Aplicar OCR si hay placas
+                # Aplicar OCR a cada placa
                 ocr_results = [self.ocr_reader.read_text(frame, p) for p in plates]
 
-                # Filtrar duplicados
+                # Asignar track_id a cada placa
+                tracked_results = self.tracker.update(ocr_results)
+
+                # Filtrar duplicados (basado en texto)
                 unique_results = [
-                    plate for plate in ocr_results
+                    plate for plate in tracked_results
                     if plate.text and not self.deduplicator.is_duplicate(plate.text)
                 ]
 
@@ -72,13 +84,11 @@ class PlateRecognitionService:
 
                 result = DetectionResult(
                     frame_id=str(uuid.uuid4()),
-                    plates=unique_results,  # 👈 lista de Plate con text + confidence + bbox
+                    plates=unique_results,
                     processed_at=time.time(),
                     source=frame.source,
                     captured_at=frame.timestamp
                 )
-
-                self.publisher.publish(result)
 
                 # Publicar resultado
                 self.publisher.publish(result)
@@ -94,9 +104,13 @@ class PlateRecognitionService:
                     time.sleep(self.loop_delay)
 
         except KeyboardInterrupt:
-            logger.info("🛑 Servicio detenido manualmente (Ctrl+C)")
+            logger.info(" Servicio detenido manualmente (Ctrl+C)")
         finally:
             self.stop()
 
     def stop(self):
         """Detiene el proceso."""
+        self.camera_stream.disconnect()
+        cv2.destroyAllWindows()
+        self.running = False
+        logger.info(" Servicio detenido correctamente")
