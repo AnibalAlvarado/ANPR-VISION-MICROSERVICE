@@ -48,6 +48,11 @@ class Settings(BaseSettings):
     yolov5_hf_repo: str = "keremberke/yolov5n-license-plate"
     yolov5_hf_filename: str = "yolov5n-license-plate.pt"
 
+    # ByteTrack
+    bytetrack_thresh: float = 0.5     # confianza mínima para aceptar detección
+    bytetrack_match_thresh: float = 0.8  # umbral IoU para asociación
+    bytetrack_buffer_size: int = 30      # frames de buffer (vida de un track)
+    bytetrack_fps: int = 30              # tasa de cuadros estimada (fps stream)
 
     class Config:
         env_file = ".env"

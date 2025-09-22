@@ -62,4 +62,7 @@ py -m src.workers.main_worker
 o con Uvicorn:
 ```powershell
 uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
+
+huggingface-cli download keremberke/yolov5n-license-plate best.pt --local-dir ./model --local-dir-use-symlinks False
+
 ```
