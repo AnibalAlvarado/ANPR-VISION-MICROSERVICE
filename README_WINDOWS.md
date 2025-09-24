@@ -66,3 +66,13 @@ uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
 huggingface-cli download keremberke/yolov5n-license-plate best.pt --local-dir ./model --local-dir-use-symlinks False
 
 ```
+
+pip install "torch==2.2.2+cpu" "torchvision==0.15.2+cpu" "torchaudio==2.2.2+cpu" -f https://download.pytorch.org/whl/torch_stable.html
+
+
+
+pip install --upgrade pip setuptools wheel
+pip install "torch==2.2.2+cpu" -f https://download.pytorch.org/whl/torch_stable.html
+# instala torchvision y torchaudio compatibles con torch 2.2.2 (CPU)
+pip install "torchvision==0.17.2+cpu" "torchaudio==2.2.2+cpu" -f https://download.pytorch.org/whl/torch_stable.html
+python -c "import torch, torchvision, torchaudio; print('torch', torch.__version__, 'cuda=', torch.cuda.is_available(), 'torch.version.cuda=', torch.version.cuda); print('torchvision', torchvision.__version__); print('torchaudio', torchaudio.__version__)"

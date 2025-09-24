@@ -55,3 +55,6 @@ o con Uvicorn:
 ```bash
 uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+
+pip install "torch==2.2.2+cpu" "torchvision==0.15.2+cpu" "torchaudio==2.2.2+cpu" -f https://download.pytorch.org/whl/torch_stable.html

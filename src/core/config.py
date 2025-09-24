@@ -54,6 +54,11 @@ class Settings(BaseSettings):
     bytetrack_buffer_size: int = 30      # frames de buffer (vida de un track)
     bytetrack_fps: int = 30              # tasa de cuadros estimada (fps stream)
 
+    #deduplicador
+    dedup_ttl: float
+    plate_min_length: int
+
+
     class Config:
         env_file = ".env"
 
