@@ -1,7 +1,8 @@
-# main.py (worker)
+# main.py (worker) - minimal
 import warnings
 warnings.filterwarnings("ignore", category=FutureWarning, module="yolov5")
 
+import logging
 from src.core.config import settings
 from src.domain.Models.camera import Camera
 from src.infrastructure.Camera.camera_factory import create_camera_stream
@@ -9,24 +10,25 @@ from src.infrastructure.Detector.factory import create_plate_detector
 from src.infrastructure.OCR.EasyOCR_OCRReader import EasyOCR_OCRReader
 from src.infrastructure.Tracking.byte_tracker import ByteTrackerAdapter
 from src.infrastructure.Messaging.retry_publisher import RetryPublisher
-from src.infrastructure.Messaging.console_publisher import ConsolePublisher
+from src.infrastructure.Messaging.kafka_publisher import KafkaPublisher
 from src.domain.Services.deduplicator_service import DeduplicatorService
 from src.infrastructure.Normalizer.plate_normalizer import PlateNormalizer
 from src.application.plate_recognition_service import PlateRecognitionService
 
-def main():
-    # crear el modelo Camera (camera_id estable)
-    cam = Camera(camera_id="cam_entrance_01", url=settings.camera_url, name="ENTRADA")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger(__name__)
 
-    # crear stream (la factory ahora acepta Camera y anexa camera_id al stream)
+def main():
+    cam = Camera(camera_id="cam_entrance_01", url=settings.camera_url, name="ENTRADA")
     camera_stream = create_camera_stream(cam)
 
     detector = create_plate_detector()
     ocr = EasyOCR_OCRReader()
     tracker = ByteTrackerAdapter()
 
-    raw_publisher = ConsolePublisher()
-    publisher = RetryPublisher(raw_publisher, attempts=3, base_delay=0.2)
+    # Publisher: Kafka + Retry
+    kafka_raw = KafkaPublisher(delivery_timeout=5.0)   # usa settings.kafka_broker y settings.kafka_topic
+    publisher = RetryPublisher(kafka_raw, attempts=3, base_delay=1.0)
 
     normalizer = PlateNormalizer(min_len=settings.plate_min_length)
     deduplicator = DeduplicatorService(normalizer=normalizer, ttl=settings.dedup_ttl)
@@ -46,7 +48,15 @@ def main():
     try:
         service.start()
     except KeyboardInterrupt:
+        logger.info("Deteniendo por KeyboardInterrupt")
         service.stop()
+    except Exception:
+        logger.exception("Error en worker")
+    finally:
+        try:
+            kafka_raw.close()
+        except Exception:
+            logger.exception("Error cerrando Kafka producer")
 
 if __name__ == "__main__":
     main()

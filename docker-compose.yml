@@ -33,11 +33,32 @@ services:
     networks:
       - anpr-net
 
+  kafka-init:
+    image: bitnami/kafka:4.0.0
+    container_name: kafka-init
+    depends_on:
+      - kafka
+    entrypoint: >
+      bash -c "
+        echo 'Waiting for kafka (checking via kafka-topics)...';
+        for i in \$(seq 1 60); do
+          /opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list >/dev/null 2>&1 && { echo 'Kafka ready'; break; }
+          echo 'waiting...'; sleep 1;
+        done;
+        echo 'Creating topic vehicle_detected if not exists...';
+        /opt/bitnami/kafka/bin/kafka-topics.sh --create --bootstrap-server kafka:9092 --replication-factor 1 --partitions 3 --topic vehicle_detected --if-not-exists || echo 'create command returned non-zero (ignored)';
+        echo 'kafka-init finished';
+      "
+    networks:
+      - anpr-net
+    restart: "no"
+
   kafka:
     image: bitnami/kafka:4.0.0
     container_name: kafka
     ports:
-      - "9092:9092"
+      - "9092:9092"   # para otros contenedores en la red y clientes que usen kafka:9092
+      - "29092:29092" # expone el listener PLAINTEXT_HOST a tu host => usar localhost:29092 desde host
     environment:
       KAFKA_CFG_NODE_ID: 1
       KAFKA_CFG_PROCESS_ROLES: broker,controller
@@ -46,16 +67,18 @@ services:
       KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
-      ALLOW_PLAINTEXT_LISTENER: yes
+      ALLOW_PLAINTEXT_LISTENER: "yes"
     volumes:
       - kafka_data:/bitnami/kafka
     networks:
       - anpr-net
+    restart: unless-stopped
     healthcheck:
-      test: ["CMD", "bash", "-c", "nc -z localhost 9092"]
+      # intenta verificar que al menos uno de los listeners está escuchando
+      test: ["CMD", "bash", "-c", "nc -z localhost 9092 || nc -z localhost 29092"]
       interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 12
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -76,4 +99,3 @@ volumes:
 networks:
   anpr-net:
     driver: bridge
-
