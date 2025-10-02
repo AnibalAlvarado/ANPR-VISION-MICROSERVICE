@@ -34,7 +34,7 @@ services:
       - anpr-net
 
   kafka-init:
-    image: bitnami/kafka:4.0.0
+    image: bitnamilegacy/kafka:4.0.0
     container_name: kafka-init
     depends_on:
       - kafka
@@ -54,7 +54,7 @@ services:
     restart: "no"
 
   kafka:
-    image: bitnami/kafka:4.0.0
+    image: bitnamilegacy/kafka:4.0.0
     container_name: kafka
     ports:
       - "9092:9092"   # para otros contenedores en la red y clientes que usen kafka:9092
