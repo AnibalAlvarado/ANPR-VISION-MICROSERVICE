@@ -19,7 +19,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 logger = logging.getLogger(__name__)
 
 def main():
-    cam = Camera(camera_id="cam_entrance_01", url=settings.camera_url, name="ENTRADA")
+    cam = Camera(camera_id="1", url=settings.camera_url, name="ENTRADA")
     camera_stream = create_camera_stream(cam)
 
     detector = create_plate_detector()
